@@ -50,3 +50,9 @@ resource "aws_s3_bucket_policy" "website" {
     ]
   })
 }
+
+resource "aws_cloudfront_origin_access_control" "website" {
+  name                              = "dorin-static-website-oac"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+}
