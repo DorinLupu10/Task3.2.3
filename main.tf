@@ -91,8 +91,55 @@ resource "aws_cloudfront_distribution" "website" {
   }
 
   viewer_certificate {
-    acm_certificate_arn      = aws_acm_certificate.website.arn
+    acm_certificate_arn      = module.acm.acm_certificate_arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
+  }
+}
+
+# acm
+module "acm" {
+  source  = "terraform-aws-modules/acm/aws"
+  version = "~> 4.0"
+
+  domain_name = var.domain_name
+  zone_id     = data.aws_route53_zone.website.zone_id
+
+  subject_alternative_names = [
+    "www.${var.domain_name}"
+  ]
+
+  wait_for_validation = true
+}
+
+# hosted Zzne
+data "aws_route53_zone" "website" {
+  name         = var.domain_name
+  private_zone = false
+}
+
+# Route 53 Record pentru domen
+resource "aws_route53_record" "website" {
+  zone_id = data.aws_route53_zone.website.zone_id
+  name    = var.domain_name
+  type    = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.website.domain_name
+    zone_id                = aws_cloudfront_distribution.website.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+# Route 53 Record pentru www.wolflife.net
+resource "aws_route53_record" "www" {
+  zone_id = data.aws_route53_zone.website.zone_id
+  name    = "www.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.website.domain_name
+    zone_id                = aws_cloudfront_distribution.website.hosted_zone_id
+    evaluate_target_health = false
   }
 }
